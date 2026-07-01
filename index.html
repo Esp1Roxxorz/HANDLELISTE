@@ -1,0 +1,1747 @@
+<!doctype html>
+<html lang="no">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#1f6f64" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Handleliste" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="application-name" content="Handleliste" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icon-180.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+    <title>Handleliste</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17211f;
+        --muted: #65716f;
+        --paper: #f8f6f0;
+        --surface: #fffdf8;
+        --line: #ddd8cd;
+        --accent: #1f6f64;
+        --accent-strong: #124d46;
+        --accent-soft: #dcece8;
+        --need: #f8dddd;
+        --need-line: #e8b8b2;
+        --picked: #dff1df;
+        --picked-line: #afd4b0;
+        --yellow: #f1c84c;
+        --danger: #a94438;
+        --shadow: 0 16px 40px rgba(23, 33, 31, 0.12);
+      }
+
+      * { box-sizing: border-box; }
+
+      html { min-height: 100%; background: var(--paper); }
+
+      body {
+        min-height: 100%;
+        margin: 0;
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: linear-gradient(180deg, rgba(31, 111, 100, 0.14), rgba(248, 246, 240, 0) 250px), var(--paper);
+      }
+
+      button, input, select { font: inherit; }
+      button { cursor: pointer; }
+
+      .app {
+        width: min(760px, 100%);
+        margin: 0 auto;
+        padding: max(14px, env(safe-area-inset-top)) 14px max(28px, env(safe-area-inset-bottom));
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 0 14px;
+      }
+
+      .store-label {
+        display: block;
+        margin-bottom: 3px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 760;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .store-select {
+        width: min(420px, 68vw);
+        min-height: 46px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 12px;
+        color: var(--ink);
+        background: var(--surface);
+        font-size: 1rem;
+        font-weight: 820;
+      }
+
+      .store-picker {
+        display: flex;
+        align-items: stretch;
+        gap: 8px;
+        width: min(540px, 72vw);
+      }
+
+      .store-picker .store-select { width: auto; flex: 1; min-width: 0; }
+      .store-picker .soft-button { white-space: nowrap; }
+      .store-form { width: min(540px, 72vw); margin-top: 8px; }
+      .store-select:focus { border-color: var(--accent); outline: 3px solid rgba(31, 111, 100, 0.14); }
+
+      .price-update-note {
+        width: min(540px, 72vw);
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 0.78rem;
+        line-height: 1.3;
+      }
+
+      .privacy-note {
+        margin: 18px 0 0;
+        color: var(--muted);
+        font-size: 0.78rem;
+        line-height: 1.35;
+        text-align: center;
+      }
+      .top-actions, .row-actions, .editor-actions { display: flex; gap: 8px; }
+
+      .icon-button, .soft-button, .primary-button, .danger-button, .mini-button, .drag-handle {
+        min-height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--ink);
+        font-weight: 760;
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+      }
+
+      .icon-button, .mini-button, .drag-handle {
+        display: grid;
+        place-items: center;
+        width: 42px;
+        padding: 0;
+        font-size: 1.08rem;
+      }
+
+      .text-button { width: auto; padding: 0 12px; font-size: 0.88rem; }
+      .share-button { width: auto; padding: 0 12px; font-size: 0.88rem; }
+
+      .soft-button, .primary-button, .danger-button { padding: 0 12px; }
+      .primary-button { border-color: var(--accent); background: var(--accent); color: white; }
+      .danger-button { border-color: rgba(169, 68, 56, 0.36); color: var(--danger); }
+
+      .share-panel {
+        display: grid;
+        gap: 10px;
+        margin: 0 0 14px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .share-panel[hidden] { display: none; }
+
+      .share-panel strong { font-size: 0.96rem; }
+
+      .share-panel textarea {
+        min-height: 180px;
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        resize: vertical;
+        color: var(--ink);
+        background: #fff;
+      }
+
+      .summary-band {
+        display: grid;
+        gap: 12px;
+        margin: 2px 0 14px;
+        padding: 16px;
+        border: 1px solid rgba(31, 111, 100, 0.18);
+        border-radius: 8px;
+        background: linear-gradient(135deg, rgba(31, 111, 100, 0.12), rgba(241, 200, 76, 0.16)), var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .summary-top {
+        display: grid;
+        grid-template-columns: minmax(240px, 420px);
+        justify-content: center;
+        align-items: start;
+      }
+
+      .eyebrow {
+        margin: 0 0 4px;
+        color: var(--accent-strong);
+        font-size: 0.78rem;
+        font-weight: 820;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      h1, h2, p { margin-top: 0; }
+      h1 { margin-bottom: 5px; font-size: clamp(1.55rem, 7vw, 2.35rem); line-height: 1; letter-spacing: 0; }
+      .summary-text { margin-bottom: 0; color: var(--muted); line-height: 1.35; }
+
+      .mini-cart {
+        width: 100%;
+        min-width: 0;
+        border: 1px solid rgba(31, 111, 100, 0.2);
+        border-radius: 8px;
+        background: rgba(255, 253, 248, 0.78);
+        overflow: hidden;
+      }
+
+      .mini-cart-head, .mini-cart-total {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 7px 9px;
+        color: var(--accent-strong);
+        font-size: 0.78rem;
+        font-weight: 850;
+      }
+
+      .mini-cart-total { border-top: 1px solid rgba(31, 111, 100, 0.14); background: rgba(31, 111, 100, 0.06); }
+      .mini-cart-total strong, .mini-cart-head strong { color: var(--ink); }
+
+      .mini-cart-list {
+        display: grid;
+        gap: 1px;
+        max-height: 280px;
+        overflow: auto;
+        font-size: 0.78rem;
+      }
+
+      .mini-cart-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+        min-height: 28px;
+        padding: 5px 9px;
+        border-top: 1px solid rgba(31, 111, 100, 0.08);
+      }
+
+      .mini-cart-row span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .mini-cart-row span:last-child { color: var(--ink); font-weight: 820; white-space: nowrap; }
+      .mini-cart-empty { padding: 8px 9px; color: var(--muted); font-size: 0.78rem; }
+
+      .quick-add { display: grid; grid-template-columns: minmax(0, 1fr) 160px 100px 88px; gap: 8px; margin-bottom: 12px; }
+
+      input[type="text"], input[type="number"], select {
+        min-height: 46px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 12px;
+        background: var(--surface);
+        color: var(--ink);
+      }
+
+      input:focus { border-color: var(--accent); outline: 3px solid rgba(31, 111, 100, 0.14); }
+
+      .tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        margin: 0 0 12px;
+        padding: 4px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 253, 248, 0.66);
+      }
+
+      .tab { min-height: 40px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-weight: 820; }
+      .tab.is-active { background: var(--accent); color: white; }
+      .view { display: none; }
+      .view.is-active { display: block; }
+
+      .view-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 8px; }
+      .view-head h2 { margin: 0; font-size: 1rem; }
+      .context-note {
+        margin: -2px 0 10px;
+        padding: 8px 10px;
+        border: 1px solid rgba(31, 111, 100, 0.18);
+        border-radius: 8px;
+        background: rgba(31, 111, 100, 0.07);
+        color: var(--accent-strong);
+        font-size: 0.86rem;
+        font-weight: 780;
+      }
+      .list { display: grid; gap: 8px; }
+
+      .item-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        min-height: 60px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 9px;
+        background: var(--surface);
+        box-shadow: 0 3px 12px rgba(23, 33, 31, 0.06);
+      }
+
+      .shopping-row { cursor: pointer; }
+      .shopping-row.need { border-color: var(--need-line); background: var(--need); }
+      .shopping-row.picked { border-color: var(--picked-line); background: var(--picked); }
+
+      .status-dot {
+        display: grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        border: 2px solid rgba(169, 68, 56, 0.34);
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.64);
+        color: transparent;
+        font-weight: 900;
+      }
+
+      .picked .status-dot { border-color: var(--accent); background: var(--accent); color: white; }
+      .name { display: block; overflow-wrap: anywhere; font-weight: 820; }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      .pill { border-radius: 999px; padding: 2px 8px; background: rgba(255, 255, 255, 0.58); color: var(--accent-strong); }
+      .price { justify-self: end; color: var(--ink); font-weight: 850; white-space: nowrap; }
+
+      .drag-list { position: relative; }
+      .drag-list .item-row { grid-template-columns: auto minmax(0, 1fr) auto; touch-action: manipulation; transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease; }
+      .drag-handle { color: var(--accent-strong); cursor: grab; touch-action: none; user-select: none; }
+      .dragging { opacity: 0.78; transform: scale(1.015); box-shadow: 0 12px 28px rgba(23, 33, 31, 0.18); z-index: 3; }
+      .dragging .drag-handle { cursor: grabbing; }
+      .drag-list.is-dragging .item-row:not(.dragging) { transform: scale(0.995); }
+      body.is-dragging { user-select: none; }
+      .move-buttons { display: flex; gap: 5px; }
+      .move-buttons .mini-button { width: 36px; height: 36px; min-height: 36px; }
+
+      .category-list, .category-stack { display: grid; gap: 10px; }
+
+      .category-block, .category-order-card, .category-edit-block {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 253, 248, 0.62);
+        box-shadow: 0 3px 12px rgba(23, 33, 31, 0.04);
+      }
+
+      .category-row, .category-toggle {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        color: var(--ink);
+        text-align: left;
+      }
+
+      .category-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        min-height: 58px;
+        padding: 10px;
+      }
+
+      .category-toggle {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        min-height: 48px;
+        padding: 6px 8px;
+      }
+
+      .category-order-head {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+      }
+
+      .chevron {
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--accent-soft);
+        color: var(--accent-strong);
+        font-weight: 900;
+      }
+
+      .category-name { display: block; overflow-wrap: anywhere; font-weight: 850; }
+      .category-total { justify-self: end; font-weight: 850; white-space: nowrap; }
+      .sub-list { display: grid; gap: 7px; padding: 0 10px 10px 48px; }
+      .sub-list .item-row { min-height: 54px; }
+      .subitem-drag-list { display: grid; gap: 7px; padding: 0 8px 10px 58px; }
+      .subitem-drag-list:empty { display: none; }
+      .subitem-drag-list .item-row { min-height: 52px; }
+      .product-editor-list { display: grid; gap: 8px; padding: 0 10px 10px 48px; }
+      .product-editor { margin-bottom: 0; background: var(--surface); }
+
+      .category-order-card.dragging { opacity: 0.78; transform: scale(1.01); }
+      .subitem-drag-list.is-dragging .item-row:not(.dragging),
+      .category-stack.is-dragging .category-order-card:not(.dragging) { transform: scale(0.995); }
+
+
+      .create-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin: 0 0 10px;
+      }
+
+      .create-panel {
+        display: grid;
+        gap: 8px;
+        margin: 0 0 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: rgba(255, 253, 248, 0.78);
+      }
+
+      .create-panel[hidden] { display: none; }
+      .product-form-grid { display: grid; grid-template-columns: 1fr 1fr 92px 110px; gap: 8px; align-items: end; }
+      .field { display: grid; gap: 4px; min-width: 0; }
+      .field-label {
+        color: var(--muted);
+        font-size: 0.74rem;
+        font-weight: 840;
+        letter-spacing: 0.04em;
+        line-height: 1.15;
+        text-transform: uppercase;
+      }
+      .field input,
+      .field select { width: 100%; }
+
+      .editor-panel {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: rgba(255, 253, 248, 0.72);
+      }
+
+      .check-line { display: flex; align-items: center; gap: 9px; color: var(--ink); font-weight: 760; }
+      .check-line input { width: 20px; height: 20px; accent-color: var(--accent); }
+      .editor-grid { display: grid; grid-template-columns: minmax(0, 1fr) 112px 118px; gap: 8px; }
+      .editor-actions button { flex: 1; }
+
+      .empty {
+        border: 1px dashed rgba(31, 111, 100, 0.42);
+        border-radius: 8px;
+        padding: 18px;
+        background: rgba(255, 253, 248, 0.76);
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .empty strong { display: block; margin-bottom: 4px; color: var(--ink); }
+      .install-note { margin: 14px 0 0; color: var(--muted); font-size: 0.87rem; line-height: 1.35; }
+
+      @media (max-width: 590px) {
+        .app { padding-inline: 10px; }
+        .summary-top { grid-template-columns: minmax(0, 1fr); }
+        .mini-cart { max-width: none; }
+        .store-picker { width: 100%; flex-direction: column; }
+        .store-form { width: 100%; }
+        .price-update-note { width: 100%; }
+        .topbar { align-items: stretch; flex-direction: column; }
+        .top-actions { width: 100%; }
+        .top-actions .text-button, .top-actions .share-button { flex: 1; }
+        .quick-add { grid-template-columns: 1fr; }
+        .sub-list, .subitem-drag-list, .product-editor-list { padding-left: 10px; }
+        .category-order-head { grid-template-columns: auto minmax(0, 1fr); }
+        .category-order-head .move-buttons { grid-column: 2; justify-self: start; }
+        .item-row { grid-template-columns: auto minmax(0, 1fr); }
+        .shopping-row .price { grid-column: 2; justify-self: start; }
+        .editor-grid { grid-template-columns: 1fr; }
+        .create-actions { grid-template-columns: 1fr; }
+        .product-form-grid { grid-template-columns: 1fr; }
+        .row-actions { flex-direction: column; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div>
+          <label class="store-label" for="storeSelect">Butikk</label>
+          <div class="store-picker">
+            <select class="store-select" id="storeSelect" aria-label="Velg butikk"></select>
+            <button class="soft-button" id="addStore" type="button">Ny butikk</button>
+          </div>
+          <form class="create-panel store-form" id="storeForm" hidden>
+            <input id="newStoreName" type="text" autocomplete="off" placeholder="Butikknavn" required />
+            <div class="editor-actions">
+              <button class="primary-button" type="submit">Legg til butikk</button>
+              <button class="soft-button" id="cancelStoreForm" type="button">Avbryt</button>
+            </div>
+          </form>
+          <p class="price-update-note" id="priceUpdated">Prisgrunnlag: ikke hentet ennå</p>
+        </div>
+        <div class="top-actions">
+          <button class="icon-button text-button" id="resetWeek" type="button" aria-label="Nullstill handlelisten" title="Nullstill handlelisten">Nullstill handlelisten</button>
+          <button class="icon-button share-button" id="shareList" type="button" aria-label="Del liste" title="Del liste">Del liste</button>
+        </div>
+      </header>
+
+      <section class="share-panel" id="sharePanel" hidden>
+        <strong>Del handlelisten</strong>
+        <textarea id="shareText" readonly></textarea>
+        <div class="editor-actions">
+          <button class="primary-button" id="copyShareText" type="button">Kopier tekst</button>
+          <button class="soft-button" id="closeSharePanel" type="button">Lukk</button>
+        </div>
+      </section>
+
+      <main>
+        <section class="summary-band" aria-live="polite">
+          <div class="summary-top">
+            <aside class="mini-cart" aria-label="Plukkede varer">
+              <div class="mini-cart-head"><span>Plukket</span><strong id="progress">0 varer</strong></div>
+              <div class="mini-cart-list" id="pickedMiniList"></div>
+              <div class="mini-cart-total"><span>Total</span><strong id="pickedMiniTotal">0 kr</strong></div>
+            </aside>
+          </div>
+        </section>
+
+        <nav class="tabs" aria-label="Visning">
+          <button class="tab is-active" type="button" data-view="shopping">Handle</button>
+          <button class="tab" type="button" data-view="order">Rekkefølge</button>
+          <button class="tab" type="button" data-view="edit">Varer</button>
+        </nav>
+
+        <section class="view is-active" id="shoppingView">
+          <div class="view-head">
+            <h2>I butikkrekkefølge</h2>
+            <button class="soft-button" id="hidePicked" type="button">Skjul grønne</button>
+          </div>
+          <div id="shoppingList"></div>
+        </section>
+
+        <section class="view" id="orderView">
+          <div class="view-head">
+            <h2>Rekkefølge</h2>
+            <button class="soft-button" id="neededFirst" type="button">Ukens først</button>
+          </div>
+          <p class="context-note" id="orderStoreContext">Du redigerer rekkefølgen for valgt butikk.</p>
+          <div class="list drag-list" id="orderList"></div>
+        </section>
+
+        <section class="view" id="editView">
+          <div class="view-head">
+            <h2>Varer og prisoverslag</h2>
+            <button class="soft-button" id="toggleAll" type="button">Velg alle</button>
+          </div>
+          <form class="quick-add" id="quickAdd">
+            <input id="quickName" type="text" autocomplete="off" placeholder="Legg til vare" required />
+            <select id="quickCategory" aria-label="Kategori"></select>
+            <input id="quickPrice" type="number" min="0" step="1" inputmode="decimal" placeholder="Pris" />
+            <button class="primary-button" type="submit">Legg til</button>
+        </form>
+          <div class="create-actions">
+            <button class="soft-button" id="showCategoryForm" type="button">Ny produktkategori</button>
+            <button class="primary-button" id="showProductForm" type="button">Nytt produkt</button>
+          </div>
+          <form class="create-panel" id="categoryForm" hidden>
+            <input id="newCategoryName" type="text" autocomplete="off" placeholder="Kategori, f.eks. Leker" required />
+            <div class="editor-actions">
+              <button class="primary-button" type="submit">Legg til kategori</button>
+              <button class="soft-button" id="cancelCategoryForm" type="button">Avbryt</button>
+            </div>
+          </form>
+          <form class="create-panel" id="productForm" hidden>
+            <div class="product-form-grid">
+              <label class="field"><span class="field-label">Kategori</span><select id="productCategory" aria-label="Kategori"></select></label>
+              <label class="field"><span class="field-label">Produkt</span><input id="newProductName" type="text" autocomplete="off" placeholder="Brunost i skiver" required /></label>
+              <label class="field"><span class="field-label">Pris pr.</span><select id="newProductUnit" aria-label="Pris pr."><option value="stk">stk</option><option value="kg">kg</option><option value="liter">liter</option></select></label>
+              <label class="field"><span class="field-label">Pris (kr)</span><input id="newProductPrice" type="number" min="0" step="1" inputmode="decimal" placeholder="44" aria-label="Pris" /></label>
+            </div>
+            <div class="editor-actions">
+              <button class="primary-button" type="submit">Legg til produkt</button>
+              <button class="soft-button" id="cancelProductForm" type="button">Avbryt</button>
+            </div>
+          </form>
+          <div id="editList"></div>
+        </section>
+
+        <p class="install-note">På iPhone: åpne siden i Safari, trykk Del-knappen og velg Legg til på Hjem-skjermen.</p>
+      </main>
+    </div>
+
+      <p class="privacy-note">Data lagres kun lokalt på enheten din. Ingen konto, innlogging eller sentral lagring.</p>
+
+    <script>
+      var storageKey = "butikk-huskeliste-v4";
+      var unitDefaultsVersion = 2;
+      var priceSeedVersion = 20260701;
+      var legacyStoreKeys = ["butikk-huskeliste-v3", "butikk-huskeliste-v2"];
+      var defaultStoreId = "rema1000-industriveien";
+      var defaultNeededNames = {
+        "Banan": true,
+        "Eple": true,
+        "Brød": true,
+        "Lettmelk": true,
+        "Egg 12-pk": true,
+        "Norvegia": true,
+        "Skinke": true,
+        "Kyllingfilet": true,
+        "Laks": true,
+        "Ris": true
+      };
+
+      var categoryMergeMap = {
+        "melk": "Melk, yoghurt og egg",
+        "yoghurt": "Melk, yoghurt og egg",
+        "yogurth": "Melk, yoghurt og egg",
+        "egg": "Melk, yoghurt og egg",
+        "pålegg": "Pålegg og ost",
+        "ost": "Pålegg og ost"
+      };
+
+      var categoryCatalog = [
+        { name: "Frukt", products: [["Banan", 24], ["Eple", 31], ["Jordbær", 54], ["Bringebær", 49], ["Appelsin", 34], ["Ananas", 39], ["Pære", 32]] },
+        { name: "Grønnsaker", products: [["Gulrot", 22], ["Potet", 29], ["Løk", 18], ["Brokkoli", 28], ["Agurk", 19], ["Tomat", 36], ["Paprika", 27]] },
+        { name: "Brød", products: [["Brød", 39], ["Rundstykker", 34], ["Knekkebrød", 32]] },
+        { name: "Melk, yoghurt og egg", products: [["Lettmelk", 24], ["Helmelk", 25], ["Laktosefri melk", 29], ["Yoghurt naturell", 32], ["Yoghurt beger", 36], ["Skyr", 22], ["Egg 12-pk", 48], ["Egg 18-pk", 69]] },
+        { name: "Pålegg og ost", products: [["Skinke", 46], ["Salami", 42], ["Leverpostei", 29], ["Makrell i tomat", 22], ["Norvegia", 89], ["Jarlsberg", 94], ["Brunost", 54], ["Kremost", 31]] },
+        { name: "Kjøtt", products: [["Kyllingfilet", 95], ["Kjøttdeig", 78], ["Bacon", 49], ["Pølser", 59]] },
+        { name: "Fisk", products: [["Laks", 110], ["Torsk", 96], ["Fiskekaker", 58]] },
+        { name: "Middagstilbehør", products: [["Ris", 34], ["Pasta", 28], ["Tortilla", 36], ["Saus", 24]] },
+        { name: "Frysevarer", products: [["Frossenpizza", 65], ["Frosne bær", 48], ["Grønnsaksblanding", 29]] },
+        { name: "Hermetikk", products: [["Hakkede tomater", 18], ["Mais", 17], ["Tomatbønner", 24]] },
+        { name: "Tørrvarer", products: [["Havregryn", 26], ["Mel", 24], ["Sukker", 22], ["Kaffe", 59]] },
+        { name: "Snacks", products: [["Potetgull", 35], ["Sjokolade", 29], ["Kjeks", 27]] },
+        { name: "Drikke", products: [["Brus", 42], ["Juice", 34], ["Farris", 29]] },
+        { name: "Husholdning", products: [["Toalettpapir", 65], ["Tørkerull", 45], ["Oppvaskmiddel", 31]] }
+      ];
+
+      var sourcePriceOverrides = {
+              "oda": {
+                      "Frukt/Banan": 23.9,
+                      "Frukt/Eple": 39.8,
+                      "Frukt/Jordbær": 64.9,
+                      "Frukt/Bringebær": 39.9,
+                      "Frukt/Appelsin": 37.9,
+                      "Frukt/Ananas": 44.9,
+                      "Frukt/Pære": 49.8,
+                      "Grønnsaker/Gulrot": 27.9,
+                      "Grønnsaker/Potet": 34.9,
+                      "Grønnsaker/Løk": 41.4,
+                      "Grønnsaker/Brokkoli": 19.9,
+                      "Grønnsaker/Agurk": 33.9,
+                      "Grønnsaker/Tomat": 74.8,
+                      "Grønnsaker/Paprika": 27,
+                      "Brød/Brød": 38.9,
+                      "Brød/Rundstykker": 18.4,
+                      "Brød/Knekkebrød": 29.9,
+                      "Melk, yoghurt og egg/Lettmelk": 21,
+                      "Melk, yoghurt og egg/Helmelk": 33.9,
+                      "Melk, yoghurt og egg/Laktosefri melk": 29.9,
+                      "Melk, yoghurt og egg/Yoghurt naturell": 22.9,
+                      "Melk, yoghurt og egg/Yoghurt beger": 35.9,
+                      "Melk, yoghurt og egg/Skyr": 16.9,
+                      "Melk, yoghurt og egg/Egg 12-pk": 59,
+                      "Melk, yoghurt og egg/Egg 18-pk": 62.9,
+                      "Pålegg og ost/Skinke": 50.4,
+                      "Pålegg og ost/Salami": 51.9,
+                      "Pålegg og ost/Leverpostei": 15.4,
+                      "Pålegg og ost/Makrell i tomat": 31.9,
+                      "Pålegg og ost/Norvegia": 153,
+                      "Pålegg og ost/Jarlsberg": 132,
+                      "Pålegg og ost/Brunost": 56.4,
+                      "Pålegg og ost/Kremost": 32.9,
+                      "Kjøtt/Kyllingfilet": 180.4,
+                      "Kjøtt/Kjøttdeig": 212.3,
+                      "Kjøtt/Bacon": 54.1,
+                      "Kjøtt/Pølser": 39.9,
+                      "Fisk/Laks": 299,
+                      "Fisk/Torsk": 203.9,
+                      "Fisk/Fiskekaker": 29.9,
+                      "Middagstilbehør/Ris": 41.3,
+                      "Middagstilbehør/Pasta": 38.5,
+                      "Middagstilbehør/Tortilla": 22.5,
+                      "Middagstilbehør/Saus": 13.9,
+                      "Frysevarer/Frossenpizza": 39.9,
+                      "Frysevarer/Frosne bær": 49.9,
+                      "Frysevarer/Grønnsaksblanding": 25.9,
+                      "Hermetikk/Hakkede tomater": 14.9,
+                      "Hermetikk/Mais": 17.9,
+                      "Hermetikk/Tomatbønner": 21.5,
+                      "Tørrvarer/Havregryn": 47.9,
+                      "Tørrvarer/Mel": 32,
+                      "Tørrvarer/Sukker": 35.9,
+                      "Tørrvarer/Kaffe": 105.9,
+                      "Snacks/Potetgull": 41.9,
+                      "Snacks/Sjokolade": 49.9,
+                      "Snacks/Kjeks": 41.3,
+                      "Drikke/Brus": 17.2,
+                      "Drikke/Juice": 27.7,
+                      "Drikke/Farris": 17.9,
+                      "Husholdning/Toalettpapir": 106.9,
+                      "Husholdning/Tørkerull": 60.4,
+                      "Husholdning/Oppvaskmiddel": 49.9
+              },
+              "meny": {
+                      "Frukt/Banan": 29.9,
+                      "Frukt/Eple": 39.9,
+                      "Frukt/Jordbær": 49.9,
+                      "Frukt/Bringebær": 39.9,
+                      "Frukt/Appelsin": 44.9,
+                      "Frukt/Ananas": 34.5,
+                      "Frukt/Pære": 42.9,
+                      "Grønnsaker/Gulrot": 27.9,
+                      "Grønnsaker/Potet": 36.9,
+                      "Grønnsaker/Løk": 46.4,
+                      "Grønnsaker/Brokkoli": 19.9,
+                      "Grønnsaker/Agurk": 29.9,
+                      "Grønnsaker/Tomat": 49.9,
+                      "Grønnsaker/Paprika": 16,
+                      "Brød/Brød": 54.5,
+                      "Brød/Rundstykker": 6.9,
+                      "Brød/Knekkebrød": 46.9,
+                      "Melk, yoghurt og egg/Lettmelk": 23.5,
+                      "Melk, yoghurt og egg/Helmelk": 26.9,
+                      "Melk, yoghurt og egg/Laktosefri melk": 32.5,
+                      "Melk, yoghurt og egg/Yoghurt naturell": 23.9,
+                      "Melk, yoghurt og egg/Yoghurt beger": 36,
+                      "Melk, yoghurt og egg/Skyr": 17.9,
+                      "Melk, yoghurt og egg/Egg 12-pk": 64.9,
+                      "Melk, yoghurt og egg/Egg 18-pk": 64.9,
+                      "Pålegg og ost/Skinke": 58.5,
+                      "Pålegg og ost/Salami": 49.9,
+                      "Pålegg og ost/Leverpostei": 28.9,
+                      "Pålegg og ost/Makrell i tomat": 26.5,
+                      "Pålegg og ost/Norvegia": 89,
+                      "Pålegg og ost/Jarlsberg": 105,
+                      "Pålegg og ost/Brunost": 64.5,
+                      "Pålegg og ost/Kremost": 22.9,
+                      "Kjøtt/Kyllingfilet": 215.2,
+                      "Kjøtt/Kjøttdeig": 229,
+                      "Kjøtt/Bacon": 85,
+                      "Kjøtt/Pølser": 64.9,
+                      "Fisk/Laks": 339,
+                      "Fisk/Torsk": 173.8,
+                      "Fisk/Fiskekaker": 17.9,
+                      "Middagstilbehør/Ris": 71.9,
+                      "Middagstilbehør/Pasta": 39.9,
+                      "Middagstilbehør/Tortilla": 11.9,
+                      "Middagstilbehør/Saus": 39.9,
+                      "Frysevarer/Frossenpizza": 99,
+                      "Frysevarer/Frosne bær": 24.9,
+                      "Frysevarer/Grønnsaksblanding": 37.9,
+                      "Hermetikk/Hakkede tomater": 16.9,
+                      "Hermetikk/Mais": 17.9,
+                      "Hermetikk/Tomatbønner": 22.9,
+                      "Tørrvarer/Havregryn": 28.9,
+                      "Tørrvarer/Mel": 32.9,
+                      "Tørrvarer/Sukker": 38.8,
+                      "Tørrvarer/Kaffe": 59.9,
+                      "Snacks/Potetgull": 51.5,
+                      "Snacks/Sjokolade": 33.9,
+                      "Snacks/Kjeks": 27.5,
+                      "Drikke/Brus": 26.6,
+                      "Drikke/Juice": 53.9,
+                      "Drikke/Farris": 53.8,
+                      "Husholdning/Toalettpapir": 165,
+                      "Husholdning/Tørkerull": 59.9,
+                      "Husholdning/Oppvaskmiddel": 59.9
+              }
+      };
+
+      var storePresets = [
+        {
+          id: "rema1000-industriveien",
+          name: "Rema1000 Industriveien",
+          priceUpdatedAt: "01.07.2026",
+          priceSource: "Oda.no",
+          priceUpdateNote: "Oda-priser brukes som startpriser for Rema1000, ikke som garanterte Rema-priser",
+          priceDisplayText: "Prisgrunnlag: Oda-priser brukes som startpriser for Rema1000 Industriveien. Dette er ikke garanterte Rema-priser. Sist sjekket 01.07.2026. Du kan overstyre hver vare.",
+          priceFactor: 1,
+          categoryOrder: ["Frukt", "Grønnsaker", "Brød", "Melk, yoghurt og egg", "Pålegg og ost", "Kjøtt", "Fisk", "Middagstilbehør", "Frysevarer", "Hermetikk", "Tørrvarer", "Snacks", "Drikke", "Husholdning"],
+          itemOrder: { "Frukt": ["Banan", "Eple", "Jordbær", "Bringebær", "Appelsin", "Ananas", "Pære"], "Melk, yoghurt og egg": ["Lettmelk", "Helmelk", "Laktosefri melk", "Yoghurt naturell", "Yoghurt beger", "Skyr", "Egg 12-pk", "Egg 18-pk"], "Pålegg og ost": ["Norvegia", "Jarlsberg", "Brunost", "Kremost", "Skinke", "Salami", "Leverpostei", "Makrell i tomat"] },
+          priceOverrides: sourcePriceOverrides.oda
+        },
+        {
+          id: "obs-citysyd",
+          name: "Obs CitySyd",
+          priceUpdatedAt: "01.07.2026",
+          priceSource: "Meny.no",
+          priceUpdateNote: "Meny-priser brukes som startpriser for Obs CitySyd, ikke som garanterte Obs-priser",
+          priceDisplayText: "Prisgrunnlag: Meny-priser brukes som startpriser for Obs CitySyd. Dette er ikke garanterte Obs-priser. Sist sjekket 01.07.2026. Du kan overstyre hver vare.",
+          priceFactor: 1,
+          categoryOrder: ["Frukt", "Grønnsaker", "Brød", "Pålegg og ost", "Melk, yoghurt og egg", "Middagstilbehør", "Tørrvarer", "Hermetikk", "Kjøtt", "Fisk", "Frysevarer", "Drikke", "Snacks", "Husholdning"],
+          itemOrder: { "Frukt": ["Eple", "Banan", "Appelsin", "Jordbær", "Bringebær", "Ananas", "Pære"], "Pålegg og ost": ["Skinke", "Leverpostei", "Salami", "Makrell i tomat", "Norvegia", "Jarlsberg", "Brunost", "Kremost"], "Melk, yoghurt og egg": ["Yoghurt naturell", "Yoghurt beger", "Skyr", "Lettmelk", "Helmelk", "Laktosefri melk", "Egg 12-pk", "Egg 18-pk"] },
+          priceOverrides: sourcePriceOverrides.meny
+        },
+        {
+          id: "coop-prix",
+          name: "Coop Prix",
+          priceUpdatedAt: "01.07.2026",
+          priceSource: "Meny.no",
+          priceUpdateNote: "Meny-priser brukes som startpriser for Coop Prix, ikke som garanterte Prix-priser",
+          priceDisplayText: "Prisgrunnlag: Meny-priser brukes som startpriser for Coop Prix. Dette er ikke garanterte Prix-priser. Sist sjekket 01.07.2026. Du kan overstyre hver vare.",
+          priceFactor: 1,
+          categoryOrder: ["Brød", "Frukt", "Grønnsaker", "Melk, yoghurt og egg", "Pålegg og ost", "Middagstilbehør", "Kjøtt", "Fisk", "Frysevarer", "Tørrvarer", "Hermetikk", "Drikke", "Snacks", "Husholdning"],
+          itemOrder: { "Frukt": ["Banan", "Appelsin", "Eple", "Pære", "Jordbær", "Bringebær", "Ananas"], "Melk, yoghurt og egg": ["Lettmelk", "Helmelk", "Yoghurt naturell", "Yoghurt beger", "Skyr", "Egg 12-pk", "Egg 18-pk", "Laktosefri melk"], "Pålegg og ost": ["Norvegia", "Jarlsberg", "Brunost", "Kremost", "Skinke", "Salami", "Leverpostei", "Makrell i tomat"] },
+          priceOverrides: sourcePriceOverrides.meny
+        }
+      ];
+
+      var state = loadState();
+      var dragContext = null;
+
+      var els = {
+        storeSelect: document.querySelector("#storeSelect"),
+        addStore: document.querySelector("#addStore"),
+        storeForm: document.querySelector("#storeForm"),
+        newStoreName: document.querySelector("#newStoreName"),
+        cancelStoreForm: document.querySelector("#cancelStoreForm"),
+        priceUpdated: document.querySelector("#priceUpdated"),
+        resetWeek: document.querySelector("#resetWeek"),
+        shareList: document.querySelector("#shareList"),
+        sharePanel: document.querySelector("#sharePanel"),
+        shareText: document.querySelector("#shareText"),
+        copyShareText: document.querySelector("#copyShareText"),
+        closeSharePanel: document.querySelector("#closeSharePanel"),
+        progress: document.querySelector("#progress"),
+        pickedMiniList: document.querySelector("#pickedMiniList"),
+        pickedMiniTotal: document.querySelector("#pickedMiniTotal"),
+        quickAdd: document.querySelector("#quickAdd"),
+        quickName: document.querySelector("#quickName"),
+        quickCategory: document.querySelector("#quickCategory"),
+        quickPrice: document.querySelector("#quickPrice"),
+        showCategoryForm: document.querySelector("#showCategoryForm"),
+        showProductForm: document.querySelector("#showProductForm"),
+        categoryForm: document.querySelector("#categoryForm"),
+        newCategoryName: document.querySelector("#newCategoryName"),
+        cancelCategoryForm: document.querySelector("#cancelCategoryForm"),
+        productForm: document.querySelector("#productForm"),
+        productCategory: document.querySelector("#productCategory"),
+        newProductName: document.querySelector("#newProductName"),
+        newProductPrice: document.querySelector("#newProductPrice"),
+        newProductUnit: document.querySelector("#newProductUnit"),
+        cancelProductForm: document.querySelector("#cancelProductForm"),
+        tabs: document.querySelectorAll(".tab"),
+        views: document.querySelectorAll(".view"),
+        shoppingList: document.querySelector("#shoppingList"),
+        orderList: document.querySelector("#orderList"),
+        editList: document.querySelector("#editList"),
+        hidePicked: document.querySelector("#hidePicked"),
+        neededFirst: document.querySelector("#neededFirst"),
+        orderStoreContext: document.querySelector("#orderStoreContext"),
+        toggleAll: document.querySelector("#toggleAll")
+      };
+
+      setupStoreSelect();
+      setupQuickCategory();
+      els.newProductUnit.value = "stk";
+
+      els.storeSelect.addEventListener("change", function () {
+        state.activeStoreId = els.storeSelect.value;
+        setupQuickCategory();
+        saveAndRender();
+      });
+
+      els.addStore.addEventListener("click", function () { showStoreForm(); });
+      els.cancelStoreForm.addEventListener("click", function () { hideStoreForm(); });
+      els.storeForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        addCustomStore(els.newStoreName.value);
+      });
+
+      els.quickAdd.addEventListener("submit", function (event) {
+        event.preventDefault();
+        addProductToCategory(els.quickCategory.value, els.quickName.value, els.quickPrice.value, "");
+        els.quickName.value = "";
+        els.quickPrice.value = "";
+      });
+
+      els.showCategoryForm.addEventListener("click", function () { showCreatePanel("category"); });
+      els.showProductForm.addEventListener("click", function () { showCreatePanel("product"); });
+      els.cancelCategoryForm.addEventListener("click", function () { hideCreatePanels(); });
+      els.cancelProductForm.addEventListener("click", function () { hideCreatePanels(); });
+
+      els.categoryForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        var category = addCategory(els.newCategoryName.value);
+        if (!category) return;
+        els.newCategoryName.value = "";
+        hideCreatePanels();
+        saveAndRender();
+        selectCategoryInForms(category.id);
+      });
+
+      els.productForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        var item = addProductToCategory(els.productCategory.value, els.newProductName.value, els.newProductPrice.value, els.newProductUnit.value);
+        if (!item) return;
+        els.newProductName.value = "";
+        els.newProductPrice.value = "";
+        els.newProductUnit.value = "stk";
+        hideCreatePanels();
+      });
+
+      els.tabs.forEach(function (tab) {
+        tab.addEventListener("click", function () {
+          els.tabs.forEach(function (item) { item.classList.toggle("is-active", item === tab); });
+          els.views.forEach(function (view) { view.classList.toggle("is-active", view.id === tab.dataset.view + "View"); });
+        });
+      });
+
+      els.hidePicked.addEventListener("click", function () { var store = activeStore(); store.hidePicked = !store.hidePicked; saveAndRender(); });
+
+      els.resetWeek.addEventListener("click", function () {
+        allItems(activeStore()).forEach(function (item) { item.needed = false; item.picked = false; });
+        saveAndRender();
+      });
+
+      els.neededFirst.addEventListener("click", function () {
+        sortedCategories().forEach(function (category) {
+          var ordered = sortedCategoryItems(category);
+          ordered.sort(function (a, b) { if (a.needed !== b.needed) return a.needed ? -1 : 1; return a.order - b.order; });
+          ordered.forEach(function (item, index) { item.order = index; });
+        });
+        saveAndRender();
+      });
+
+      els.toggleAll.addEventListener("click", function () {
+        var items = allItems(activeStore());
+        var shouldSelect = items.some(function (item) { return !item.needed; });
+        items.forEach(function (item) { item.needed = shouldSelect; if (!shouldSelect) item.picked = false; });
+        saveAndRender();
+      });
+
+      els.shareList.addEventListener("click", async function () {
+        var text = buildShareText();
+        if (navigator.share) {
+          try {
+            await navigator.share({ title: "Handleliste", text: text });
+            return;
+          } catch (error) {
+            if (error && error.name === "AbortError") return;
+          }
+        }
+        showSharePanel(text);
+      });
+
+      els.copyShareText.addEventListener("click", async function () {
+        if (!els.shareText.value) return;
+        var copied = false;
+        if (navigator.clipboard && window.isSecureContext) {
+          try {
+            await navigator.clipboard.writeText(els.shareText.value);
+            copied = true;
+          } catch (error) {}
+        }
+        if (!copied) {
+          els.shareText.focus();
+          els.shareText.select();
+          try { copied = document.execCommand("copy"); } catch (error) { copied = false; }
+        }
+        flashShare(copied ? "Kopiert" : "Marker teksten");
+      });
+
+      els.closeSharePanel.addEventListener("click", function () {
+        els.sharePanel.hidden = true;
+      });
+
+      function setupStoreSelect() {
+        els.storeSelect.innerHTML = storesForSelect().map(function (store) {
+          return '<option value="' + store.id + '">' + escapeHtml(store.name) + '</option>';
+        }).join("");
+        els.storeSelect.value = state.activeStoreId;
+      }
+
+      function storesForSelect() {
+        var presetIds = {};
+        var stores = storePresets.map(function (store) { presetIds[store.id] = true; return store; });
+        Object.keys(state.stores || {}).forEach(function (storeId) {
+          if (!presetIds[storeId]) stores.push(state.stores[storeId]);
+        });
+        return stores;
+      }
+
+      function setupQuickCategory() {
+        var quickSelected = els.quickCategory.value;
+        var productSelected = els.productCategory ? els.productCategory.value : "";
+        var categories = sortedCategories();
+        var options = categories.map(function (category) {
+          return '<option value="' + category.id + '">' + escapeHtml(category.name) + '</option>';
+        }).join("");
+        els.quickCategory.innerHTML = options;
+        if (els.productCategory) els.productCategory.innerHTML = options;
+        var fallback = categories.length ? categories[0].id : "";
+        els.quickCategory.value = findCategory(quickSelected) ? quickSelected : fallback;
+        if (els.productCategory) els.productCategory.value = findCategory(productSelected) ? productSelected : els.quickCategory.value;
+      }
+
+      function loadState() {
+        var modern = readStoredState(storageKey);
+        if (modern && modern.stores) return applySourcePrices(migrateModern(modern));
+        for (var index = 0; index < legacyStoreKeys.length; index += 1) {
+          var legacy = readStoredState(legacyStoreKeys[index]);
+          if (legacy) return applySourcePrices(migrateLegacy(legacy));
+        }
+        return applySourcePrices(buildDefaultState());
+      }
+
+      function readStoredState(key) {
+        try { return JSON.parse(localStorage.getItem(key)); }
+        catch (error) { localStorage.removeItem(key); return null; }
+      }
+
+      function buildDefaultState() {
+        var stores = {};
+        storePresets.forEach(function (preset) { stores[preset.id] = buildStoreFromPreset(preset); });
+        return ensureGlobalUnits({ activeStoreId: defaultStoreId, stores: stores });
+      }
+
+      function buildStoreFromPreset(preset) {
+        var orderedNames = mergeNames(preset.categoryOrder || [], categoryCatalog.map(function (category) { return category.name; }));
+        return {
+          id: preset.id,
+          name: preset.name,
+          hidePicked: false,
+          categories: orderedNames.map(function (categoryName, index) { return buildCategoryFromPreset(preset, categoryName, index); })
+        };
+      }
+
+      function buildCategoryFromPreset(preset, categoryName, index) {
+        var catalog = catalogByName(categoryName) || { name: categoryName, products: [] };
+        var presetOrder = preset.itemOrder && preset.itemOrder[categoryName] ? preset.itemOrder[categoryName] : [];
+        var productNames = mergeNames(presetOrder, catalog.products.map(function (product) { return product[0]; }));
+        var category = {
+          id: preset.id + "-" + slug(categoryName),
+          name: categoryName,
+          expanded: false,
+          order: index,
+          items: productNames.map(function (productName, productIndex) {
+            var basePrice = catalogPrice(categoryName, productName);
+            var overrideKey = categoryName + "/" + productName;
+            var priceFactor = preset.priceFactor !== undefined ? preset.priceFactor : 1;
+            var price = preset.priceOverrides && preset.priceOverrides[overrideKey] !== undefined ? preset.priceOverrides[overrideKey] : Math.round(basePrice * priceFactor);
+            var neededDefaults = preset.defaultNeededNames || defaultNeededNames;
+            return { id: preset.id + "-" + slug(categoryName) + "-" + slug(productName), name: productName, note: "", unit: defaultUnitForProduct(categoryName, productName), price: price, needed: Boolean(neededDefaults[productName]), picked: false, order: productIndex };
+          })
+        };
+        return category;
+      }
+
+      function migrateModern(value) {
+        var fresh = buildDefaultState();
+        fresh.priceSeedVersion = readNumber(value.priceSeedVersion);
+        storePresets.forEach(function (preset) {
+          var stored = value.stores && value.stores[preset.id];
+          if (stored && stored.categories) fresh.stores[preset.id] = migrateStoreWithCategories(stored, preset);
+          if (stored && stored.items) fresh.stores[preset.id] = migrateStoreWithFlatItems(stored, preset);
+        });
+        Object.keys(value.stores || {}).forEach(function (storeId) {
+          if (!presetById(storeId) && value.stores[storeId] && value.stores[storeId].categories) fresh.stores[storeId] = migrateCustomStore(value.stores[storeId], storeId);
+        });
+        fresh.activeStoreId = fresh.stores[value.activeStoreId] ? value.activeStoreId : defaultStoreId;
+        return ensureGlobalUnits(fresh, value.globalUnits);
+      }
+
+      function migrateLegacy(value) {
+        var fresh = buildDefaultState();
+        if (value.stores) {
+          storePresets.forEach(function (preset) {
+            if (value.stores[preset.id]) fresh.stores[preset.id] = migrateStoreWithFlatItems(value.stores[preset.id], preset);
+          });
+          fresh.activeStoreId = fresh.stores[value.activeStoreId] ? value.activeStoreId : defaultStoreId;
+          return ensureGlobalUnits(fresh, value.globalUnits);
+        }
+        if (value.items) {
+          fresh.stores[defaultStoreId] = migrateStoreWithFlatItems(value, presetById(defaultStoreId));
+          fresh.activeStoreId = defaultStoreId;
+        }
+        return ensureGlobalUnits(fresh, value.globalUnits);
+      }
+
+      function migrateStoreWithCategories(store, preset) {
+        var fresh = buildStoreFromPreset(preset);
+        fresh.hidePicked = Boolean(store.hidePicked);
+        (store.categories || []).forEach(function (storedCategory, fallbackIndex) {
+          var targetName = canonicalCategoryName(storedCategory.name);
+          var category = findCategoryByNameInStore(fresh, targetName) || findCategoryInStore(fresh, storedCategory.id) || findCategoryByNameInStore(fresh, storedCategory.name);
+          var mergedIntoNewCategory = normalizeText(targetName) !== normalizeText(storedCategory.name);
+          if (!category) {
+            category = { id: storedCategory.id || preset.id + "-" + slug(targetName || "kategori"), name: targetName || storedCategory.name || "Kategori", expanded: false, order: fallbackIndex, items: [] };
+            fresh.categories.push(category);
+          }
+          if (!mergedIntoNewCategory) category.name = storedCategory.name || category.name;
+          category.expanded = false;
+          if (!mergedIntoNewCategory && Number.isFinite(storedCategory.order)) category.order = storedCategory.order;
+          var orderOffset = mergedIntoNewCategory ? fallbackIndex * 100 : 0;
+          (storedCategory.items || []).forEach(function (storedItem, itemIndex) {
+            var item = findItemInCategory(category, storedItem.id) || findItemByNameInCategory(category, storedItem.name);
+            if (!item) {
+              item = { id: storedItem.id || makeId(), name: storedItem.name || "Vare", note: "", unit: "stk", price: 0, needed: false, picked: false, order: itemIndex };
+              category.items.push(item);
+            }
+            item.name = storedItem.name || item.name;
+            item.note = storedItem.note || "";
+            item.unit = validPriceUnit(storedItem.unit || storedItem.priceUnit || storedItem.note);
+            item.price = readNumber(storedItem.price);
+            item.needed = Boolean(storedItem.needed);
+            item.picked = Boolean(storedItem.picked || storedItem.done);
+            item.order = Number.isFinite(storedItem.order) ? orderOffset + storedItem.order : orderOffset + itemIndex;
+          });
+        });
+        normalizeStore(fresh);
+        return fresh;
+      }
+
+      function migrateStoreWithFlatItems(store, preset) {
+        var fresh = buildStoreFromPreset(preset);
+        fresh.hidePicked = Boolean(store.hidePicked);
+        (store.items || []).forEach(function (legacyItem) {
+          var category = findCategoryByNameInStore(fresh, legacyItem.name);
+          if (category) {
+            category.order = Number.isFinite(legacyItem.order) ? legacyItem.order : category.order;
+            category.expanded = false;
+            if (legacyItem.needed || legacyItem.picked) {
+              var firstItem = sortedCategoryItems(category)[0];
+              if (firstItem) {
+                firstItem.needed = Boolean(legacyItem.needed || legacyItem.picked);
+                firstItem.picked = Boolean(legacyItem.picked || legacyItem.done);
+              }
+            }
+          }
+        });
+        normalizeStore(fresh);
+        return fresh;
+      }
+
+      function customStorePreset(name, id) {
+        return {
+          id: id,
+          name: name,
+          custom: true,
+          priceUpdatedAt: "Manuell",
+          priceSource: "egne priser",
+          priceUpdateNote: "standardvarer starter med 0 kr",
+          priceDisplayText: "Prisgrunnlag: Egendefinert butikk. Alle standardvarer starter med 0 kr. Fyll inn egne priser etter hvert.",
+          priceFactor: 0,
+          defaultNeededNames: {},
+          categoryOrder: categoryCatalog.map(function (category) { return category.name; }),
+          itemOrder: {},
+          priceOverrides: {}
+        };
+      }
+
+      function buildCustomStore(name, id) {
+        var preset = customStorePreset(name, id);
+        var store = buildStoreFromPreset(preset);
+        store.custom = true;
+        store.priceUpdatedAt = preset.priceUpdatedAt;
+        store.priceSource = preset.priceSource;
+        store.priceUpdateNote = preset.priceUpdateNote;
+        store.priceDisplayText = preset.priceDisplayText;
+        return store;
+      }
+
+      function migrateCustomStore(stored, fallbackId) {
+        var id = stored.id || fallbackId || "custom-" + slug(stored.name || "Egen butikk");
+        var preset = customStorePreset(stored.name || "Egen butikk", id);
+        var fresh = migrateStoreWithCategories(stored, preset);
+        fresh.id = id;
+        fresh.name = stored.name || preset.name;
+        fresh.custom = true;
+        fresh.priceUpdatedAt = stored.priceUpdatedAt || preset.priceUpdatedAt;
+        fresh.priceSource = stored.priceSource || preset.priceSource;
+        fresh.priceUpdateNote = stored.priceUpdateNote || preset.priceUpdateNote;
+        fresh.priceDisplayText = stored.priceDisplayText || preset.priceDisplayText;
+        return fresh;
+      }
+
+      function showStoreForm() {
+        els.storeForm.hidden = false;
+        window.setTimeout(function () { els.newStoreName.focus(); }, 0);
+      }
+
+      function hideStoreForm() {
+        els.storeForm.hidden = true;
+        els.newStoreName.value = "";
+      }
+
+      function addCustomStore(rawName) {
+        var name = String(rawName || "").trim();
+        if (!name) { els.newStoreName.focus(); return; }
+        if (storeNameExists(name)) { window.alert("Det finnes allerede en butikk med dette navnet."); return; }
+        var id = uniqueCustomStoreId(name);
+        state.stores[id] = buildCustomStore(name, id);
+        state.activeStoreId = id;
+        ensureGlobalUnits(state, state.globalUnits);
+        hideStoreForm();
+        setupStoreSelect();
+        saveAndRender();
+      }
+
+      function storeNameExists(name) {
+        var wanted = normalizeText(name);
+        return Object.keys(state.stores || {}).some(function (storeId) { return normalizeText(state.stores[storeId].name) === wanted; });
+      }
+
+      function uniqueCustomStoreId(name) {
+        var base = "custom-" + slug(name || "butikk");
+        var id = base;
+        var counter = 2;
+        while (state && state.stores && state.stores[id]) { id = base + "-" + counter; counter += 1; }
+        return id;
+      }
+
+      function applySourcePrices(targetState) {
+        if (!targetState || readNumber(targetState.priceSeedVersion) >= priceSeedVersion) return targetState;
+        storePresets.forEach(function (preset) {
+          var store = targetState.stores && targetState.stores[preset.id];
+          var overrides = preset.priceOverrides || {};
+          if (!store || !store.categories) return;
+          store.categories.forEach(function (category) {
+            (category.items || []).forEach(function (item) {
+              var sourcePrice = overrides[category.name + "/" + item.name];
+              if (Number.isFinite(sourcePrice)) item.price = sourcePrice;
+            });
+          });
+        });
+        targetState.priceSeedVersion = priceSeedVersion;
+        return targetState;
+      }
+
+      function catalogByName(name) { return categoryCatalog.find(function (category) { return category.name === name; }); }
+      function catalogPrice(categoryName, productName) {
+        var category = catalogByName(categoryName);
+        var product = category && category.products.find(function (entry) { return entry[0] === productName; });
+        return product ? product[1] : 0;
+      }
+      function presetById(id) { return storePresets.find(function (store) { return store.id === id; }) || null; }
+      function storeProfileById(id) { return presetById(id) || (state.stores && state.stores[id]) || storePresets[0]; }
+      function activeStore() { return state.stores[state.activeStoreId] || state.stores[defaultStoreId]; }
+      function sortedCategories() { return activeStore().categories.slice().sort(function (a, b) { return a.order - b.order || a.name.localeCompare(b.name, "no"); }); }
+      function sortedCategoryItems(category) { return (category.items || []).slice().sort(function (a, b) { return a.order - b.order || a.name.localeCompare(b.name, "no"); }); }
+      function allItems(store) { return (store.categories || []).reduce(function (items, category) { return items.concat(category.items || []); }, []); }
+      function findCategory(id) { return activeStore().categories.find(function (category) { return category.id === id; }); }
+      function findCategoryByName(name) { var wanted = normalizeText(name); return activeStore().categories.find(function (category) { return normalizeText(category.name) === wanted; }); }
+      function findCategoryInStore(store, id) { return (store.categories || []).find(function (category) { return category.id === id; }); }
+      function findCategoryByNameInStore(store, name) { var wanted = canonicalCategoryName(name); return (store.categories || []).find(function (category) { return normalizeText(category.name) === normalizeText(wanted); }); }
+      function findItem(id) {
+        var categories = activeStore().categories || [];
+        for (var categoryIndex = 0; categoryIndex < categories.length; categoryIndex += 1) {
+          var item = findItemInCategory(categories[categoryIndex], id);
+          if (item) return item;
+        }
+        return null;
+      }
+      function findItemInCategory(category, id) { return (category.items || []).find(function (item) { return item.id === id; }); }
+      function findItemByNameInCategory(category, name) { return (category.items || []).find(function (item) { return item.name === name; }); }
+
+      function makeId() {
+        if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+        return "item-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+      }
+
+      function saveState() { localStorage.setItem(storageKey, JSON.stringify(state)); }
+      function saveAndRender() { applyGlobalUnitsToStores(); normalizeStore(activeStore()); saveState(); render(); }
+      function nextCategoryOrder(store) { return (store.categories || []).reduce(function (highest, category) { return Math.max(highest, category.order); }, -1) + 1; }
+      function nextItemOrder(category) { return (category.items || []).reduce(function (highest, item) { return Math.max(highest, item.order); }, -1) + 1; }
+      function normalizeStore(store) {
+        (store.categories || []).slice().sort(function (a, b) { return a.order - b.order || a.name.localeCompare(b.name, "no"); }).forEach(function (category, index) {
+          category.order = index;
+          category.items = category.items || [];
+          category.items.slice().sort(function (a, b) { return a.order - b.order || a.name.localeCompare(b.name, "no"); }).forEach(function (item, itemIndex) { item.order = itemIndex; item.unit = validPriceUnit(item.unit); });
+        });
+      }
+
+      function render() {
+        applyGlobalUnitsToStores();
+        var store = activeStore();
+        var items = allItems(store);
+        var picked = items.filter(function (item) { return item.picked; });
+        var pickedTotal = sumPrices(picked);
+        els.storeSelect.value = state.activeStoreId;
+        els.priceUpdated.textContent = priceUpdateText(storeProfileById(state.activeStoreId));
+        setupQuickCategory();
+        els.hidePicked.textContent = store.hidePicked ? "Vis grønne" : "Skjul grønne";
+        els.toggleAll.textContent = items.some(function (item) { return !item.needed; }) ? "Velg alle" : "Fjern alle";
+        els.orderStoreContext.textContent = "Du redigerer handlerekkefølgen for " + store.name + ".";
+        els.progress.textContent = picked.length + " varer";
+        renderPickedMiniList(picked, pickedTotal);
+        renderShoppingList(); renderOrderList(); renderEditList();
+      }
+
+      function sumPrices(items) { return items.reduce(function (sum, item) { return sum + readNumber(item.price); }, 0); }
+
+      function buildShareText() {
+        var lines = [];
+        sortedCategories().forEach(function (category) {
+          var items = sortedCategoryItems(category).filter(function (item) { return item.needed && !item.picked; });
+          if (!items.length) return;
+          lines.push(category.name);
+          items.forEach(function (item) { lines.push("- " + item.name + " ca. " + formatUnitPrice(item)); });
+        });
+        return activeStore().name + "\n" + (lines.length ? lines.join("\n") : "Handlelisten er tom.");
+      }
+
+      function showSharePanel(text) {
+        els.shareText.value = text;
+        els.sharePanel.hidden = false;
+        els.shareText.focus();
+        els.shareText.select();
+      }
+
+      function renderPickedMiniList(pickedItems, pickedTotal) {
+        var pickedIds = {};
+        pickedItems.forEach(function (item) { pickedIds[item.id] = true; });
+        var ordered = [];
+        sortedCategories().forEach(function (category) {
+          sortedCategoryItems(category).forEach(function (item) { if (pickedIds[item.id]) ordered.push(item); });
+        });
+        els.pickedMiniTotal.textContent = formatMoney(pickedTotal);
+        if (!ordered.length) {
+          els.pickedMiniList.innerHTML = '<div class="mini-cart-empty">Ingen plukkede varer</div>';
+          return;
+        }
+        els.pickedMiniList.innerHTML = ordered.map(function (item) {
+          return '<div class="mini-cart-row"><span>' + escapeHtml(item.name) + '</span><span>' + formatMoney(item.price) + '</span></div>';
+        }).join("");
+      }
+
+      function renderShoppingList() {
+        var store = activeStore();
+        var blocks = [];
+        sortedCategories().forEach(function (category) {
+          var categoryItems = sortedCategoryItems(category);
+          var visibleItems = categoryItems.filter(function (item) { return !store.hidePicked || !item.picked; });
+          if (!categoryItems.length) return;
+          blocks.push(shoppingCategoryBlock(category, visibleItems, categoryItems));
+        });
+        if (!blocks.length) {
+          els.shoppingList.innerHTML = emptyMarkup("Ingen varer ennå.", "Legg til varer i Varer-fanen.");
+          return;
+        }
+        els.shoppingList.innerHTML = '<div class="category-list">' + blocks.join("") + '</div>';
+        bindCategoryToggles(els.shoppingList);
+        els.shoppingList.querySelectorAll(".shopping-row").forEach(function (row) {
+          row.addEventListener("click", function () { toggleShoppingItem(row.dataset.itemId); });
+          row.addEventListener("keydown", function (event) { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggleShoppingItem(row.dataset.itemId); } });
+        });
+      }
+
+      function shoppingCategoryBlock(category, visibleItems, categoryItems) {
+        var pickedItems = categoryItems.filter(function (item) { return item.picked; });
+        var total = sumPrices(pickedItems);
+        var metaText = pickedItems.length + ' av ' + categoryItems.length + ' plukket';
+        return '<section class="category-block" data-category-id="' + category.id + '">' +
+          '<button class="category-row" type="button" data-toggle-category="' + category.id + '">' +
+            '<span class="chevron" aria-hidden="true">' + (category.expanded ? "⌄" : "›") + '</span>' +
+            '<span><span class="category-name">' + escapeHtml(category.name) + '</span><span class="meta"><span>' + metaText + '</span></span></span>' +
+            '<span class="category-total">' + formatMoney(total) + '</span>' +
+          '</button>' +
+          (category.expanded ? '<div class="sub-list">' + visibleItems.map(shoppingRow).join("") + '</div>' : '') +
+        '</section>';
+      }
+
+      function renderOrderList() {
+        var rows = sortedCategories().map(orderCategoryBlock).join("");
+        els.orderList.className = "category-stack";
+        els.orderList.innerHTML = rows || emptyMarkup("Ingen kategorier ennå.", "Legg til varer øverst.");
+        bindCategoryToggles(els.orderList);
+        els.orderList.querySelectorAll(".drag-handle").forEach(function (handle) { handle.addEventListener("pointerdown", startPointerDrag); });
+        els.orderList.querySelectorAll('[data-up-category]').forEach(function (button) { button.addEventListener("click", function () { moveCategory(button.dataset.upCategory, -1); }); });
+        els.orderList.querySelectorAll('[data-down-category]').forEach(function (button) { button.addEventListener("click", function () { moveCategory(button.dataset.downCategory, 1); }); });
+        els.orderList.querySelectorAll('[data-up-item]').forEach(function (button) { button.addEventListener("click", function () { moveItem(button.dataset.categoryId, button.dataset.upItem, -1); }); });
+        els.orderList.querySelectorAll('[data-down-item]').forEach(function (button) { button.addEventListener("click", function () { moveItem(button.dataset.categoryId, button.dataset.downItem, 1); }); });
+      }
+
+      function orderCategoryBlock(category) {
+        return '<section class="category-order-card" data-category-id="' + category.id + '">' +
+          '<div class="category-order-head">' +
+            '<button class="drag-handle" type="button" data-drag-type="category" data-category-id="' + category.id + '" aria-label="Dra ' + escapeAttr(category.name) + '">≡</button>' +
+            '<button class="category-toggle" type="button" data-toggle-category="' + category.id + '">' +
+              '<span class="chevron" aria-hidden="true">' + (category.expanded ? "⌄" : "›") + '</span>' +
+              '<span><span class="category-name">' + escapeHtml(category.name) + '</span><span class="meta"><span>' + category.items.length + ' varer</span></span></span>' +
+            '</button>' +
+            '<div class="move-buttons"><button class="mini-button" type="button" data-up-category="' + category.id + '" aria-label="Flytt kategori opp">↑</button><button class="mini-button" type="button" data-down-category="' + category.id + '" aria-label="Flytt kategori ned">↓</button></div>' +
+          '</div>' +
+          (category.expanded ? '<div class="subitem-drag-list" data-category-id="' + category.id + '">' + sortedCategoryItems(category).map(function (item) { return orderRow(category, item); }).join("") + '</div>' : '') +
+        '</section>';
+      }
+
+      function renderEditList() {
+        var rows = sortedCategories().map(editCategoryBlock).join("");
+        els.editList.innerHTML = rows || emptyMarkup("Ingen varer ennå.", "Legg til varer øverst.");
+        bindCategoryToggles(els.editList);
+        bindEditEvents();
+      }
+
+      function editCategoryBlock(category) {
+        return '<section class="category-edit-block" data-category-id="' + category.id + '">' +
+          '<button class="category-row" type="button" data-toggle-category="' + category.id + '">' +
+            '<span class="chevron" aria-hidden="true">' + (category.expanded ? "⌄" : "›") + '</span>' +
+            '<span><span class="category-name">' + escapeHtml(category.name) + '</span><span class="meta"><span>' + category.items.length + ' varer</span></span></span>' +
+            '<span class="category-total">' + formatMoney(sumPrices(category.items)) + '</span>' +
+          '</button>' +
+          (category.expanded ? '<div class="product-editor-list">' + sortedCategoryItems(category).map(function (item) { return editorRow(category, item); }).join("") + '</div>' : '') +
+        '</section>';
+      }
+
+      function shoppingRow(item) {
+        var status = item.picked ? "picked" : "need";
+        var statusText = item.picked ? "Plukket" : "Ikke plukket";
+        var statusIcon = item.picked ? "&#10003;" : "";
+        var statusMeta = item.picked ? '<span>Plukket</span>' : "";
+        return '<article class="item-row shopping-row ' + status + '" data-item-id="' + item.id + '" role="button" tabindex="0" aria-label="' + escapeAttr(item.name) + ', ' + statusText + '">' +
+          '<span class="status-dot" aria-hidden="true">' + statusIcon + '</span>' +
+          '<div><span class="name">' + escapeHtml(item.name) + '</span>' +
+          '<span class="meta">' + statusMeta + (item.note ? '<span class="pill">' + escapeHtml(item.note) + '</span>' : '') + '</span></div>' +
+          '<span class="price">' + formatUnitPrice(item) + '</span>' +
+        '</article>';
+      }
+
+      function orderRow(category, item) {
+        return '<article class="item-row" data-category-id="' + category.id + '" data-item-id="' + item.id + '">' +
+          '<button class="drag-handle" type="button" data-drag-type="item" data-category-id="' + category.id + '" data-item-id="' + item.id + '" aria-label="Dra ' + escapeAttr(item.name) + '">≡</button>' +
+          '<div><span class="name">' + escapeHtml(item.name) + '</span>' +
+          '<span class="meta"><span>' + (item.needed ? "Med denne uken" : "Fast vare") + '</span><span class="pill">' + formatUnitPrice(item) + '</span></span></div>' +
+          '<div class="move-buttons"><button class="mini-button" type="button" data-category-id="' + category.id + '" data-up-item="' + item.id + '" aria-label="Flytt vare opp">↑</button><button class="mini-button" type="button" data-category-id="' + category.id + '" data-down-item="' + item.id + '" aria-label="Flytt vare ned">↓</button></div>' +
+        '</article>';
+      }
+
+      function editorRow(category, item) {
+        return '<article class="editor-panel product-editor" data-category-id="' + category.id + '" data-item-id="' + item.id + '">' +
+          '<label class="check-line"><input type="checkbox" data-needed="' + item.id + '" ' + (item.needed ? "checked" : "") + ' />' + escapeHtml(item.name) + '</label>' +
+          '<div class="editor-grid">' +
+            '<label class="field"><span class="field-label">Produkt</span><input type="text" data-name="' + item.id + '" value="' + escapeAttr(item.name) + '" aria-label="Varenavn" /></label>' +
+            '<label class="field"><span class="field-label">Pris pr.</span><select data-unit="' + item.id + '" aria-label="Pris pr.">' + unitOptions(item.unit) + '</select></label>' +
+            '<label class="field"><span class="field-label">Pris (kr)</span><input type="number" min="0" step="1" inputmode="decimal" data-price="' + item.id + '" value="' + escapeAttr(item.price) + '" aria-label="Prisoverslag" /></label>' +
+          '</div>' +
+          '<div class="editor-actions">' +
+            '<button class="soft-button" type="button" data-picked="' + item.id + '">' + (item.picked ? "Gjør rød" : "Gjør grønn") + '</button>' +
+            '<button class="danger-button" type="button" data-delete="' + item.id + '" data-category-id="' + category.id + '">Slett</button>' +
+          '</div>' +
+        '</article>';
+      }
+
+      function bindCategoryToggles(root) {
+        root.querySelectorAll('[data-toggle-category]').forEach(function (button) {
+          button.addEventListener("click", function () { toggleCategory(button.dataset.toggleCategory); });
+        });
+      }
+
+      function bindEditEvents() {
+        els.editList.querySelectorAll('[data-needed]').forEach(function (input) { input.addEventListener("change", function () { var item = findItem(input.dataset.needed); item.needed = input.checked; if (!item.needed) item.picked = false; saveAndRender(); }); });
+        els.editList.querySelectorAll('[data-name]').forEach(function (input) { input.addEventListener("change", function () { var item = findItem(input.dataset.name); item.name = input.value.trim() || item.name; setGlobalUnit(item, item.unit); saveAndRender(); }); });
+        els.editList.querySelectorAll('[data-unit]').forEach(function (input) { input.addEventListener("change", function () { var item = findItem(input.dataset.unit); setGlobalUnit(item, input.value); saveAndRender(); }); });
+        els.editList.querySelectorAll('[data-price]').forEach(function (input) { input.addEventListener("change", function () { var item = findItem(input.dataset.price); item.price = readNumber(input.value); saveAndRender(); }); });
+        els.editList.querySelectorAll('[data-picked]').forEach(function (button) { button.addEventListener("click", function () { togglePicked(button.dataset.picked); }); });
+        els.editList.querySelectorAll('[data-delete]').forEach(function (button) { button.addEventListener("click", function () { var category = findCategory(button.dataset.categoryId); if (!category) return; category.items = category.items.filter(function (item) { return item.id !== button.dataset.delete; }); saveAndRender(); }); });
+      }
+
+      function showCreatePanel(type) {
+        var showCategory = type === "category";
+        els.categoryForm.hidden = !showCategory;
+        els.productForm.hidden = showCategory;
+        if (showCategory) {
+          window.setTimeout(function () { els.newCategoryName.focus(); }, 0);
+        } else {
+          els.productCategory.value = els.quickCategory.value || els.productCategory.value;
+          els.newProductUnit.value = "stk";
+          window.setTimeout(function () { els.newProductName.focus(); }, 0);
+        }
+      }
+
+      function hideCreatePanels() {
+        els.categoryForm.hidden = true;
+        els.productForm.hidden = true;
+      }
+
+      function selectCategoryInForms(categoryId) {
+        if (findCategory(categoryId)) {
+          els.quickCategory.value = categoryId;
+          els.productCategory.value = categoryId;
+        }
+      }
+
+      function addCategory(name) {
+        var cleanName = String(name || "").trim();
+        if (!cleanName) return null;
+        var existing = findCategoryByName(cleanName);
+        if (existing) {
+          existing.expanded = false;
+          return existing;
+        }
+        var store = activeStore();
+        var category = { id: uniqueCategoryId(store, cleanName), name: cleanName, expanded: false, order: nextCategoryOrder(store), items: [] };
+        store.categories.push(category);
+        return category;
+      }
+
+      function addProductToCategory(categoryId, name, price, unit) {
+        var cleanName = String(name || "").trim();
+        if (!cleanName) return null;
+        var category = findCategory(categoryId) || sortedCategories()[0];
+        if (!category) return null;
+        var existing = findItemByNameInCategory(category, cleanName);
+        if (existing) {
+          var enteredPrice = String(price || "").trim();
+          if (enteredPrice) existing.price = readNumber(enteredPrice);
+          setGlobalUnit(existing, unit);
+          existing.needed = true;
+          existing.picked = false;
+          saveAndRender();
+          selectCategoryInForms(category.id);
+          return existing;
+        }
+        var item = { id: uniqueItemId(category, cleanName), name: cleanName, note: "", unit: validPriceUnit(unit), price: readNumber(price), needed: true, picked: false, order: nextItemOrder(category) };
+        category.items.push(item);
+        setGlobalUnit(item, unit);
+        saveAndRender();
+        selectCategoryInForms(category.id);
+        return item;
+      }
+
+      function priceUpdateText(preset) {
+        if (!preset) return "Prisgrunnlag: ikke hentet ennå";
+        if (preset.priceDisplayText) return preset.priceDisplayText;
+        if (!preset.priceUpdatedAt) return "Prisgrunnlag: ikke hentet ennå";
+        return "Prisgrunnlag: " + preset.priceSource + " · sist sjekket " + preset.priceUpdatedAt + " · " + preset.priceUpdateNote;
+      }
+
+      function unitKey(name) { return normalizeText(name); }
+
+      function ensureGlobalUnits(targetState, storedUnits) {
+        targetState.globalUnits = {};
+        Object.keys(storedUnits || {}).forEach(function (key) { targetState.globalUnits[key] = validPriceUnit(storedUnits[key]); });
+        Object.keys(targetState.stores || {}).forEach(function (storeId) {
+          allItems(targetState.stores[storeId]).forEach(function (item) {
+            var key = unitKey(item.name);
+            if (!targetState.globalUnits[key]) targetState.globalUnits[key] = validPriceUnit(naturalUnitForProduct(item.name) || item.unit);
+          });
+        });
+        if (targetState.unitDefaultsVersion !== unitDefaultsVersion) {
+          applyNaturalUnitDefaults(targetState.globalUnits);
+          targetState.unitDefaultsVersion = unitDefaultsVersion;
+        }
+        applyGlobalUnitsToStores(targetState);
+        return targetState;
+      }
+
+      function applyGlobalUnitsToStores(targetState) {
+        var source = targetState || state;
+        if (!source || !source.stores) return;
+        source.globalUnits = source.globalUnits || {};
+        Object.keys(source.stores).forEach(function (storeId) {
+          allItems(source.stores[storeId]).forEach(function (item) {
+            var key = unitKey(item.name);
+            if (!source.globalUnits[key]) source.globalUnits[key] = validPriceUnit(naturalUnitForProduct(item.name) || item.unit);
+            item.unit = source.globalUnits[key];
+          });
+        });
+      }
+
+      function setGlobalUnit(item, unit) {
+        if (!item) return;
+        state.globalUnits = state.globalUnits || {};
+        state.globalUnits[unitKey(item.name)] = validPriceUnit(unit);
+        item.unit = state.globalUnits[unitKey(item.name)];
+        applyGlobalUnitsToStores();
+      }
+
+      function unitOptions(value) { var unit = validPriceUnit(value); return '<option value="stk"' + (unit === "stk" ? " selected" : "") + '>stk</option><option value="kg"' + (unit === "kg" ? " selected" : "") + '>kg</option><option value="liter"' + (unit === "liter" ? " selected" : "") + '>liter</option>'; }
+      function validPriceUnit(value) { var unit = String(value || "").toLowerCase(); if (unit === "kg") return "kg"; if (unit === "l" || unit === "liter") return "liter"; return "stk"; }
+      function formatUnitPrice(item) { return formatMoney(item.price) + "/" + validPriceUnit(item.unit); }
+      function applyNaturalUnitDefaults(globalUnits) { Object.keys(liquidProducts()).forEach(function (name) { globalUnits[unitKey(name)] = "liter"; }); }
+      function liquidProducts() { return { "Lettmelk": true, "Helmelk": true, "Laktosefri melk": true, "Yoghurt naturell": true, "Juice": true, "Brus": true, "Farris": true }; }
+      function naturalUnitForProduct(productName) { if (liquidProducts()[productName]) return "liter"; return ""; }
+      function defaultUnitForProduct(categoryName, productName) {
+        var naturalUnit = naturalUnitForProduct(productName);
+        if (naturalUnit) return naturalUnit;
+        var kgProducts = { "Banan": true, "Eple": true, "Appelsin": true, "Ananas": true, "Pære": true, "Gulrot": true, "Potet": true, "Løk": true, "Tomat": true, "Kyllingfilet": true, "Kjøttdeig": true, "Laks": true, "Torsk": true };
+        return kgProducts[productName] ? "kg" : "stk";
+      }
+      function toggleCategory(id) { var category = findCategory(id); if (!category) return; category.expanded = !category.expanded; saveAndRender(); }
+      function toggleShoppingItem(id) {
+        var item = findItem(id);
+        if (!item) return;
+        item.picked = !item.picked;
+        item.needed = item.picked;
+        saveAndRender();
+      }
+      function togglePicked(id) { var item = findItem(id); if (!item) return; item.picked = !item.picked; if (item.picked) item.needed = true; saveAndRender(); }
+
+      function moveCategory(id, delta) {
+        var ordered = sortedCategories();
+        var from = ordered.findIndex(function (category) { return category.id === id; });
+        var to = Math.max(0, Math.min(ordered.length - 1, from + delta));
+        if (from === to) return;
+        var moved = ordered.splice(from, 1)[0];
+        ordered.splice(to, 0, moved);
+        ordered.forEach(function (category, index) { category.order = index; });
+        saveAndRender();
+      }
+
+      function moveItem(categoryId, id, delta) {
+        var category = findCategory(categoryId);
+        if (!category) return;
+        var ordered = sortedCategoryItems(category);
+        var from = ordered.findIndex(function (item) { return item.id === id; });
+        var to = Math.max(0, Math.min(ordered.length - 1, from + delta));
+        if (from === to) return;
+        var moved = ordered.splice(from, 1)[0];
+        ordered.splice(to, 0, moved);
+        ordered.forEach(function (item, index) { item.order = index; });
+        saveAndRender();
+      }
+
+      function startPointerDrag(event) {
+        if (event.button !== undefined && event.button !== 0) return;
+        event.preventDefault();
+        var handle = event.currentTarget;
+        var type = handle.dataset.dragType;
+        var row = type === "category" ? handle.closest(".category-order-card") : handle.closest(".item-row");
+        if (!row) return;
+        var container = type === "category" ? els.orderList : row.closest(".subitem-drag-list");
+        if (!container) return;
+        dragContext = { type: type, categoryId: handle.dataset.categoryId, row: row, container: container };
+        row.classList.add("dragging");
+        container.classList.add("is-dragging");
+        document.body.classList.add("is-dragging");
+        if (handle.setPointerCapture) handle.setPointerCapture(event.pointerId);
+        window.addEventListener("pointermove", pointerMove, { passive: false });
+        window.addEventListener("pointerup", pointerUp, { once: true });
+        window.addEventListener("pointercancel", pointerUp, { once: true });
+      }
+
+      function pointerMove(event) {
+        if (!dragContext) return;
+        event.preventDefault();
+        autoScrollDuringDrag(event.clientY);
+        var selector = dragContext.type === "category" ? ".category-order-card:not(.dragging)" : ".item-row:not(.dragging)";
+        var afterElement = getDragAfterElement(dragContext.container, event.clientY, selector);
+        if (!afterElement) dragContext.container.appendChild(dragContext.row);
+        else if (afterElement !== dragContext.row) dragContext.container.insertBefore(dragContext.row, afterElement);
+      }
+
+      function pointerUp() {
+        if (!dragContext) return;
+        var context = dragContext;
+        document.querySelectorAll(".dragging").forEach(function (item) { item.classList.remove("dragging"); });
+        context.container.classList.remove("is-dragging");
+        document.body.classList.remove("is-dragging");
+        window.removeEventListener("pointermove", pointerMove);
+        window.removeEventListener("pointerup", pointerUp);
+        window.removeEventListener("pointercancel", pointerUp);
+        dragContext = null;
+        updateOrderFromDom(context);
+      }
+
+      function getDragAfterElement(container, y, selector) {
+        var rows = Array.from(container.querySelectorAll(selector));
+        return rows.reduce(function (closest, child) {
+          var box = child.getBoundingClientRect();
+          var offset = y - box.top - box.height / 2;
+          if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
+          return closest;
+        }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+      }
+
+      function updateOrderFromDom(context) {
+        if (context.type === "category") {
+          var byCategoryId = {};
+          activeStore().categories.forEach(function (category) { byCategoryId[category.id] = category; });
+          Array.from(els.orderList.querySelectorAll(".category-order-card")).forEach(function (row, index) { if (byCategoryId[row.dataset.categoryId]) byCategoryId[row.dataset.categoryId].order = index; });
+        } else {
+          var category = findCategory(context.categoryId);
+          if (category) {
+            var byItemId = {};
+            category.items.forEach(function (item) { byItemId[item.id] = item; });
+            Array.from(context.container.querySelectorAll(".item-row")).forEach(function (row, index) { if (byItemId[row.dataset.itemId]) byItemId[row.dataset.itemId].order = index; });
+          }
+        }
+        normalizeStore(activeStore());
+        saveState();
+        render();
+      }
+
+      function autoScrollDuringDrag(clientY) {
+        var margin = 84;
+        var step = 14;
+        if (clientY < margin) window.scrollBy(0, -step);
+        if (window.innerHeight - clientY < margin) window.scrollBy(0, step);
+      }
+
+      function uniqueCategoryId(store, name) {
+        var base = store.id + "-" + slug(name);
+        var id = base;
+        var counter = 2;
+        while ((store.categories || []).some(function (category) { return category.id === id; })) { id = base + "-" + counter; counter += 1; }
+        return id;
+      }
+
+      function uniqueItemId(category, name) {
+        var base = category.id + "-" + slug(name);
+        var id = base;
+        var counter = 2;
+        while ((category.items || []).some(function (item) { return item.id === id; })) { id = base + "-" + counter; counter += 1; }
+        return id;
+      }
+
+      function normalizeText(value) { return String(value || "").trim().toLocaleLowerCase("no-NO"); }
+      function canonicalCategoryName(name) { var clean = String(name || "").trim(); return categoryMergeMap[normalizeText(clean)] || clean; }
+
+      function mergeNames(primary, fallback) {
+        var seen = {};
+        return (primary || []).concat(fallback || []).filter(function (name) {
+          if (!name || seen[name]) return false;
+          seen[name] = true;
+          return true;
+        });
+      }
+
+      function slug(value) { return String(value).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "vare"; }
+      function readNumber(value) { var number = Number(String(value || "0").replace(",", ".")); return Number.isFinite(number) && number >= 0 ? number : 0; }
+      function formatMoney(value) { return Math.round(readNumber(value)).toLocaleString("no-NO") + " kr"; }
+      function flashShare(message) { var original = els.shareList.textContent; els.shareList.textContent = message || "Kopiert"; window.setTimeout(function () { els.shareList.textContent = original; }, 1200); }
+      function emptyMarkup(title, detail) { return '<div class="empty"><strong>' + escapeHtml(title) + '</strong><span>' + escapeHtml(detail) + '</span></div>'; }
+      function escapeHtml(value) { return String(value).replace(/[&<>"']/g, function (char) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]; }); }
+      function escapeAttr(value) { return escapeHtml(value).replace(new RegExp(String.fromCharCode(96), "g"), "&#96;"); }
+
+      function registerServiceWorker() {
+        if (!("serviceWorker" in navigator)) return;
+        if (window.location.protocol === "file:") return;
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("./service-worker.js").catch(function () {});
+        });
+      }
+
+      registerServiceWorker();
+      render();
+    </script>
+  </body>
+</html>
