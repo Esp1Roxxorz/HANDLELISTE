@@ -150,6 +150,22 @@
 
       .share-panel[hidden] { display: none; }
 
+      .backup-panel {
+        margin-bottom: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: var(--surface);
+      }
+      .backup-panel summary { min-height: 44px; align-content: center; cursor: pointer; font-weight: 820; }
+      .backup-panel p { margin: 8px 0; line-height: 1.4; overflow-wrap: anywhere; }
+      .backup-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+      .backup-actions button { min-height: 46px; flex: 1 1 210px; }
+      .backup-download { display: inline-block; padding: 12px 0; color: var(--accent-strong); }
+      .backup-download[hidden] { display: none; }
+      .backup-status { font-size: 0.9rem; }
+      .backup-status.is-error { color: var(--danger); }
+
       .share-panel strong { font-size: 0.96rem; }
 
       .share-panel textarea {
@@ -510,6 +526,20 @@
         </div>
       </header>
 
+      <details class="backup-panel" id="backupPanel">
+        <summary>Sikkerhetskopi</summary>
+        <p>Ta vare på alle butikker, kategorier, varer, priser, rekkefølger og innstillinger i én fil.</p>
+        <p id="backupHelp">På iPhone: trykk «Lagre sikkerhetskopi» og velg «Lagre i Filer» i delingsvinduet. Hvis filen lastes ned, finner du den under Nedlastinger i Filer.</p>
+        <div class="backup-actions">
+          <button class="primary-button" id="exportBackup" type="button" aria-describedby="backupHelp">Lagre sikkerhetskopi</button>
+          <button class="soft-button" id="importBackup" type="button">Gjenopprett fra fil</button>
+        </div>
+        <input id="backupFile" type="file" accept=".json,application/json,text/json,text/plain" aria-label="Velg sikkerhetskopi" hidden />
+        <a class="backup-download" id="downloadBackup" hidden>Last ned JSON-fil</a>
+        <p>Gjenoppretting erstatter alt innhold på denne enheten. Du får bekrefte før noe endres. Ta gjerne en sikkerhetskopi først.</p>
+        <p class="backup-status" id="backupStatus" role="status" aria-live="polite" aria-atomic="true"></p>
+      </details>
+
       <section class="share-panel" id="sharePanel" hidden>
         <strong>Del handlelisten</strong>
         <textarea id="shareText" readonly></textarea>
@@ -601,6 +631,11 @@
       var unitDefaultsVersion = 2;
       var priceSeedVersion = 20260701;
       var legacyStoreKeys = ["butikk-huskeliste-v3", "butikk-huskeliste-v2"];
+      var backupFormat = "handleliste-backup";
+      var backupVersion = 1;
+      var maxBackupBytes = 10 * 1024 * 1024;
+      var backupDownloadUrl = null;
+      var backupBusy = false;
       var defaultStoreId = "rema1000-industriveien";
       var defaultNeededNames = {
         "Banan": true,
@@ -829,6 +864,11 @@
         shareText: document.querySelector("#shareText"),
         copyShareText: document.querySelector("#copyShareText"),
         closeSharePanel: document.querySelector("#closeSharePanel"),
+        exportBackup: document.querySelector("#exportBackup"),
+        importBackup: document.querySelector("#importBackup"),
+        backupFile: document.querySelector("#backupFile"),
+        downloadBackup: document.querySelector("#downloadBackup"),
+        backupStatus: document.querySelector("#backupStatus"),
         progress: document.querySelector("#progress"),
         pickedMiniList: document.querySelector("#pickedMiniList"),
         pickedMiniTotal: document.querySelector("#pickedMiniTotal"),
@@ -971,6 +1011,195 @@
         els.sharePanel.hidden = true;
       });
 
+      els.exportBackup.addEventListener("click", exportBackup);
+      els.importBackup.addEventListener("click", function () {
+        if (!backupBusy) els.backupFile.click();
+      });
+      els.backupFile.addEventListener("change", async function () {
+        var file = els.backupFile.files[0];
+        try { if (file) await importBackup(file); }
+        finally { els.backupFile.value = ""; }
+      });
+
+      function backupMessage(message, isError) {
+        els.backupStatus.textContent = message;
+        els.backupStatus.classList.toggle("is-error", Boolean(isError));
+      }
+
+      function setBackupBusy(busy) {
+        backupBusy = busy;
+        els.exportBackup.disabled = busy;
+        els.importBackup.disabled = busy;
+      }
+
+      function clearBackupDownload() {
+        if (backupDownloadUrl) URL.revokeObjectURL(backupDownloadUrl);
+        backupDownloadUrl = null;
+        els.downloadBackup.hidden = true;
+        els.downloadBackup.removeAttribute("href");
+      }
+
+      function offerBackupDownload(file, startDownload) {
+        clearBackupDownload();
+        backupDownloadUrl = URL.createObjectURL(file);
+        els.downloadBackup.href = backupDownloadUrl;
+        els.downloadBackup.download = file.name;
+        els.downloadBackup.hidden = false;
+        // Keep the URL alive for Safari and for a second tap if the download was blocked.
+        if (startDownload) els.downloadBackup.click();
+        backupMessage(startDownload
+          ? "Nedlasting startet. Kontroller at JSON-filen ligger i Filer / Nedlastinger. Du kan også trykke «Last ned JSON-fil»."
+          : "Fil-deling er ikke tilgjengelig. Trykk «Last ned JSON-fil» for å lagre sikkerhetskopien.");
+      }
+
+      function createBackupFile() {
+        validateBackupState(state);
+        var createdAt = new Date().toISOString();
+        var backup = { format: backupFormat, version: backupVersion, exportedAt: createdAt, state: state };
+        var filename = "handleliste-sikkerhetskopi-" + createdAt.replace(/[:.]/g, "-") + ".json";
+        var file = new File([JSON.stringify(backup, null, 2) + "\n"], filename, { type: "application/json" });
+        backupAssert(file.size <= maxBackupBytes, "Sikkerhetskopien er større enn grensen på 10 MB.");
+        return file;
+      }
+
+      async function exportBackup() {
+        if (backupBusy) return;
+        setBackupBusy(true);
+        clearBackupDownload();
+        try {
+          // Build synchronously so iOS still has the button's user activation for share().
+          var file = createBackupFile();
+          var canShareFile = false;
+          try { canShareFile = Boolean(navigator.share && navigator.canShare && navigator.canShare({ files: [file] })); }
+          catch (error) {}
+          if (canShareFile) {
+            try {
+              await navigator.share({ files: [file], title: "Sikkerhetskopi av Handleliste" });
+              backupMessage("Delingsvinduet er lukket. Kontroller at sikkerhetskopien er lagret i Filer.");
+            } catch (error) {
+              if (error && error.name === "AbortError") backupMessage("Lagring avbrutt.");
+              else offerBackupDownload(file, false);
+            }
+          } else {
+            offerBackupDownload(file, true);
+          }
+        } catch (error) {
+          backupMessage("Kunne ikke lage sikkerhetskopien. " + error.message, true);
+        } finally {
+          setBackupBusy(false);
+        }
+      }
+
+      function backupAssert(condition, message) {
+        if (!condition) throw new Error(message || "Filen inneholder ugyldige eller manglende data.");
+      }
+
+      function backupObject(value, required, optional) {
+        backupAssert(value !== null && typeof value === "object" && !Array.isArray(value));
+        var keys = Object.keys(value);
+        backupAssert(!keys.some(function (key) { return ["__proto__", "constructor", "prototype"].includes(key); }));
+        if (required) {
+          backupAssert(required.every(function (key) { return Object.prototype.hasOwnProperty.call(value, key); }));
+          backupAssert(keys.every(function (key) { return required.concat(optional || []).includes(key); }));
+        }
+      }
+
+      function backupId(value) {
+        // IDs are used in HTML attributes and object lookups throughout the app.
+        return typeof value === "string" && /^[a-zA-Z0-9_-]+$/.test(value) && !["__proto__", "constructor", "prototype"].includes(value);
+      }
+
+      function backupName(value) { return typeof value === "string" && value.trim().length > 0; }
+      function backupOrder(value) { return Number.isSafeInteger(value) && value >= 0; }
+      function backupUnit(value) { return ["stk", "kg", "liter"].includes(value); }
+
+      function validateBackupState(value) {
+        backupObject(value, ["activeStoreId", "stores", "globalUnits", "unitDefaultsVersion", "priceSeedVersion"]);
+        backupObject(value.stores);
+        backupObject(value.globalUnits);
+        backupAssert(backupOrder(value.unitDefaultsVersion) && backupOrder(value.priceSeedVersion));
+        backupAssert(backupId(value.activeStoreId) && Object.prototype.hasOwnProperty.call(value.stores, value.activeStoreId));
+        Object.keys(value.globalUnits).forEach(function (key) {
+          backupAssert(backupName(key) && backupUnit(value.globalUnits[key]));
+        });
+        var storeIds = Object.keys(value.stores);
+        backupAssert(storeIds.length > 0);
+        storeIds.forEach(function (storeId) {
+          var store = value.stores[storeId];
+          backupObject(store, ["id", "name", "hidePicked", "categories"], ["custom", "priceUpdatedAt", "priceSource", "priceUpdateNote", "priceDisplayText"]);
+          backupAssert(backupId(storeId) && store.id === storeId && backupName(store.name));
+          backupAssert(typeof store.hidePicked === "boolean" && Array.isArray(store.categories));
+          if (Object.prototype.hasOwnProperty.call(store, "custom")) backupAssert(typeof store.custom === "boolean");
+          ["priceUpdatedAt", "priceSource", "priceUpdateNote", "priceDisplayText"].forEach(function (key) {
+            if (Object.prototype.hasOwnProperty.call(store, key)) backupAssert(typeof store[key] === "string");
+          });
+          var categoryIds = new Set();
+          var itemIds = new Set();
+          store.categories.forEach(function (category) {
+            backupObject(category, ["id", "name", "expanded", "order", "items"]);
+            backupAssert(backupId(category.id) && !categoryIds.has(category.id) && backupName(category.name));
+            categoryIds.add(category.id);
+            backupAssert(typeof category.expanded === "boolean" && backupOrder(category.order) && Array.isArray(category.items));
+            category.items.forEach(function (item) {
+              backupObject(item, ["id", "name", "note", "unit", "price", "needed", "picked", "order"]);
+              backupAssert(backupId(item.id) && !itemIds.has(item.id) && backupName(item.name));
+              itemIds.add(item.id);
+              backupAssert(typeof item.note === "string" && backupUnit(item.unit));
+              backupAssert(typeof item.price === "number" && Number.isFinite(item.price) && item.price >= 0);
+              backupAssert(typeof item.needed === "boolean" && typeof item.picked === "boolean" && backupOrder(item.order));
+              // Rendering applies global units. Reject inconsistencies rather than silently changing the backup.
+              backupAssert(Object.prototype.hasOwnProperty.call(value.globalUnits, unitKey(item.name)) && value.globalUnits[unitKey(item.name)] === item.unit);
+            });
+          });
+        });
+        return value;
+      }
+
+      function parseBackup(text) {
+        var backup;
+        try { backup = JSON.parse(text.replace(/^\uFEFF/, "")); }
+        catch (error) { throw new Error("Filen er ikke gyldig JSON."); }
+        backupObject(backup, ["format", "version", "exportedAt", "state"]);
+        backupAssert(backup.format === backupFormat, "Dette er ikke en sikkerhetskopi fra Handleliste.");
+        backupAssert(backup.version === backupVersion, "Denne versjonen av sikkerhetskopien støttes ikke. Prøv å oppdatere appen.");
+        backupAssert(typeof backup.exportedAt === "string" && Number.isFinite(Date.parse(backup.exportedAt)), "Sikkerhetskopien mangler en gyldig dato.");
+        validateBackupState(backup.state);
+        return backup;
+      }
+
+      async function importBackup(file) {
+        if (backupBusy) return;
+        setBackupBusy(true);
+        backupMessage("Kontrollerer sikkerhetskopien …");
+        try {
+          backupAssert(file.size > 0 && file.size <= maxBackupBytes, "Velg en JSON-sikkerhetskopi som er større enn 0 byte og høyst 10 MB.");
+          var backup = parseBackup(await file.text());
+          var stores = Object.values(backup.state.stores);
+          var categoryCount = stores.reduce(function (sum, store) { return sum + store.categories.length; }, 0);
+          var itemCount = stores.reduce(function (sum, store) { return sum + allItems(store).length; }, 0);
+          var summary = stores.length + " butikker, " + categoryCount + " kategorier og " + itemCount + " varer";
+          if (!window.confirm("Gjenopprett sikkerhetskopi fra " + new Date(backup.exportedAt).toLocaleString("nb-NO") + "?\n\n" + summary + ".\n\nAlt nåværende innhold i Handleliste på denne enheten blir erstattet. Dette kan ikke angres uten en egen sikkerhetskopi.\n\nVil du fortsette?")) {
+            backupMessage("Gjenoppretting avbrutt. Ingen data er endret.");
+            return;
+          }
+          // A single setItem is atomic: do not replace in-memory state until persistence succeeds.
+          try { localStorage.setItem(storageKey, JSON.stringify(backup.state)); }
+          catch (error) { throw new Error("Kunne ikke lagre på enheten. Lagringsplassen kan være full eller utilgjengelig. Ingen data er endret."); }
+          state = backup.state;
+          clearBackupDownload();
+          hideCreatePanels();
+          hideStoreForm();
+          els.sharePanel.hidden = true;
+          setupStoreSelect();
+          render();
+          backupMessage("Sikkerhetskopien er gjenopprettet: " + summary + ".");
+        } catch (error) {
+          backupMessage("Kunne ikke gjenopprette. " + error.message, true);
+        } finally {
+          setBackupBusy(false);
+        }
+      }
+
       function setupStoreSelect() {
         els.storeSelect.innerHTML = storesForSelect().map(function (store) {
           return '<option value="' + store.id + '">' + escapeHtml(store.name) + '</option>';
@@ -980,9 +1209,9 @@
 
       function storesForSelect() {
         var presetIds = {};
-        var stores = storePresets.map(function (store) { presetIds[store.id] = true; return store; });
+        var stores = storePresets.filter(function (store) { return Object.prototype.hasOwnProperty.call(state.stores, store.id); }).map(function (store) { presetIds[store.id] = true; return state.stores[store.id]; });
         Object.keys(state.stores || {}).forEach(function (storeId) {
-          if (!presetIds[storeId]) stores.push(state.stores[storeId]);
+          if (!Object.prototype.hasOwnProperty.call(presetIds, storeId)) stores.push(state.stores[storeId]);
         });
         return stores;
       }
@@ -1003,6 +1232,12 @@
 
       function loadState() {
         var modern = readStoredState(storageKey);
+        // Complete v4 data is already the user's snapshot. Rebuilding it from presets
+        // would resurrect deleted items, collapse categories and overwrite unit choices.
+        if (modern && modern.stores) {
+          try { return validateBackupState(modern); }
+          catch (error) { /* Older shapes still use the existing migration path below. */ }
+        }
         if (modern && modern.stores) return applySourcePrices(migrateModern(modern));
         for (var index = 0; index < legacyStoreKeys.length; index += 1) {
           var legacy = readStoredState(legacyStoreKeys[index]);
