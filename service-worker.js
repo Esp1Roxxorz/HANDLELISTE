@@ -1,4 +1,4 @@
-const CACHE_NAME = "handleliste-pwa-v2";
+const CACHE_NAME = "handleliste-pwa-v3";
 const APP_ASSETS = [
   "./",
   "./index.html",
